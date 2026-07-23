@@ -1,0 +1,100 @@
+{
+  "scope": {
+    "design": "retrospective single-centre internal temporal transport evaluation",
+    "unit": "hospitalization record",
+    "tasks": [
+      "mean resting postoperative pain",
+      "mean activity postoperative pain"
+    ],
+    "fixed_realtime_prediction_trigger": false,
+    "deployment_supported": false
+  },
+  "cohort": {
+    "linked_hospitalizations": 44180,
+    "complete_main_outcomes": 41741,
+    "main_predictor_count": 47,
+    "source_common_predictor_count": 35
+  },
+  "split": {
+    "strategies": [
+      "random internal split",
+      "forward temporal split"
+    ],
+    "test_fraction_of_full_cohort": 0.2,
+    "calibration_fraction_of_post_test_pool": 0.2,
+    "validation_fraction_of_post_calibration_pool": 0.2,
+    "training_fraction_of_full_cohort": 0.512,
+    "validation_fraction_of_full_cohort": 0.128,
+    "calibration_fraction_of_full_cohort": 0.16,
+    "random_seed": 20260722
+  },
+  "preprocessing": {
+    "continuous_missing_values": "training-set median",
+    "continuous_scaling": "training-set mean and standard deviation",
+    "continuous_input_guard": "clip standardized continuous inputs to [-5, 5]",
+    "binary_indicators": "retained as 0/1",
+    "dose_clipping": {
+      "fitted_on": "training set only",
+      "lower_quantile": 0.005,
+      "upper_quantile": 0.995,
+      "number_of_prespecified_dose_features": 7
+    },
+    "outcomes": "observed only; no target imputation or winsorisation"
+  },
+  "model": {
+    "family": "multi-task heteroscedastic multilayer perceptron",
+    "shared_hidden_dimensions": [
+      256,
+      128
+    ],
+    "activation": "ReLU",
+    "dropout": 0.15,
+    "task_specific_outputs": [
+      "conditional mean",
+      "log variance"
+    ],
+    "log_variance_clip": [
+      -12.0,
+      8.0
+    ],
+    "loss": "mean factorized Gaussian negative log-likelihood",
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 512,
+    "maximum_epochs": 80,
+    "early_stopping_patience": 12,
+    "gradient_norm_clip": 5.0
+  },
+  "uncertainty_and_intervals": {
+    "reported_point_prediction": "deterministic forward-pass conditional mean",
+    "reported_uncertainty_score": "deterministic forward-pass conditional standard deviation",
+    "interval_method": "per-task normalized split conformal",
+    "primary_miscoverage_alpha": 0.1,
+    "secondary_miscoverage_alpha": 0.05,
+    "conformal_parameters_fitted_on": "calibration set only"
+  },
+  "principal_metrics": [
+    "mean absolute error",
+    "R-squared",
+    "90% empirical coverage",
+    "mean 90% interval width",
+    "Spearman correlation between predicted uncertainty and absolute error",
+    "change in mean absolute error after retaining the 80% least-uncertain records"
+  ],
+  "uncertainty_intervals_for_metrics": {
+    "method": "percentile bootstrap",
+    "iterations": 2000,
+    "resampling_unit": "hospitalization record",
+    "confidence_level": 0.95,
+    "conditional_on": "one fitted model and one frozen split"
+  },
+  "not_released": [
+    "individual-level data",
+    "individual-level predictions",
+    "split identifiers",
+    "fitted preprocessing values",
+    "fitted model weights"
+  ]
+}
+
